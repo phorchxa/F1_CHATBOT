@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 AI Chatbot · Pit Lane Intel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Rajdhani:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:#E10600; --red2:#FF1801; --dark:#0A0A0A; --dark2:#111111;
+    --dark3:#1A1A1A; --dark4:#222222; --border:#2A2A2A; --muted:#555555;
+    --text:#E8E8E8; --text2:#AAAAAA; --white:#FFFFFF; --green:#00D2BE; --yellow:#FFF200;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--dark);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;overflow:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(225,6,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(225,6,0,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .top-stripe{position:fixed;top:0;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,var(--red) 0px,var(--red) 30px,var(--white) 30px,var(--white) 40px);z-index:100;}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.93);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(8px);}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--dark3);border:1px solid var(--border);border-top:3px solid var(--red);padding:36px;width:500px;max-width:92vw;position:relative;}
+  .modal::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at top left,rgba(225,6,0,0.06),transparent 70%);pointer-events:none;}
+  .modal-badge{font-family:'Racing Sans One',cursive;font-size:10px;letter-spacing:4px;color:var(--red);text-transform:uppercase;margin-bottom:6px;}
+  .modal h2{font-family:'Racing Sans One',cursive;font-size:26px;color:var(--white);margin-bottom:8px;}
+  .modal-desc{font-size:13.5px;color:var(--text2);margin-bottom:22px;line-height:1.65;}
+  .free-badge{display:inline-block;background:rgba(0,210,190,0.15);border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:700;letter-spacing:2px;padding:3px 8px;margin-bottom:16px;text-transform:uppercase;}
+  .modal label{display:block;font-size:10px;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:7px;font-weight:700;}
+  .modal input,.modal select{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 14px;outline:none;transition:border-color 0.2s;margin-bottom:16px;appearance:none;}
+  .modal input:focus,.modal select:focus{border-color:var(--red);}
+  .modal input::placeholder{color:var(--muted);}
+  .modal select option{background:var(--dark3);}
+  .modal-btn{width:100%;background:var(--red);color:var(--white);border:none;cursor:pointer;font-family:'Racing Sans One',cursive;font-size:14px;letter-spacing:2px;padding:13px;text-transform:uppercase;transition:background 0.2s,transform 0.1s;}
+  .modal-btn:hover{background:var(--red2);}
+  .modal-btn:active{transform:scale(0.99);}
+  .modal-steps{margin-bottom:20px;background:var(--dark4);border:1px solid var(--border);padding:14px 16px;}
+  .modal-steps-title{font-size:10px;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:10px;font-weight:600;}
+  .step{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;color:var(--text2);line-height:1.5;}
+  .step-num{background:var(--red);color:var(--white);font-family:'Racing Sans One',cursive;font-size:11px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step a{color:var(--green);text-decoration:none;}
+  .step a:hover{text-decoration:underline;}
+  .modal-note{margin-top:12px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5;}
+
+  /* App layout */
+  .app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:1;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 26px 16px;border-bottom:1px solid var(--border);background:var(--dark2);flex-shrink:0;margin-top:4px;}
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .f1-badge{background:var(--red);color:var(--white);font-family:'Racing Sans One',cursive;font-size:12px;letter-spacing:1px;padding:4px 10px 2px;}
+  .header-title{font-family:'Racing Sans One',cursive;font-size:20px;color:var(--white);letter-spacing:1px;}
+  .header-sub{font-size:11px;color:var(--text2);letter-spacing:1px;margin-top:1px;}
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .model-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);background:rgba(0,210,190,0.1);border:1px solid rgba(0,210,190,0.25);padding:4px 10px;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--green);}50%{opacity:0.4;box-shadow:0 0 3px var(--green);}}
+  .change-key-btn{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);background:none;border:1px solid var(--border);cursor:pointer;padding:5px 11px;text-transform:uppercase;transition:color 0.2s,border-color 0.2s;}
+  .change-key-btn:hover{color:var(--red);border-color:var(--red);}
+
+  /* Messages */
+  .messages{flex:1;overflow-y:auto;padding:24px 26px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth;}
+  .messages::-webkit-scrollbar{width:3px;}
+  .messages::-webkit-scrollbar-thumb{background:var(--border);}
+  .welcome{background:var(--dark3);border:1px solid var(--border);border-left:3px solid var(--red);padding:22px 26px;max-width:640px;margin:0 auto;width:100%;}
+  .welcome-label{font-size:10px;letter-spacing:3px;color:var(--red);text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+  .welcome h3{font-family:'Racing Sans One',cursive;font-size:18px;color:var(--white);margin-bottom:8px;}
+  .welcome p{font-size:13.5px;color:var(--text2);line-height:1.7;margin-bottom:16px;}
+  .suggestions{display:flex;flex-wrap:wrap;gap:7px;}
+  .suggestion{background:var(--dark4);border:1px solid var(--border);color:var(--text2);font-family:'Rajdhani',sans-serif;font-size:12.5px;font-weight:500;padding:6px 13px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .suggestion:hover{border-color:var(--red);color:var(--red);background:rgba(225,6,0,0.05);}
+
+  .message{display:flex;gap:11px;max-width:800px;animation:fadeUp 0.3s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .message.user{flex-direction:row-reverse;margin-left:auto;}
+  .message.assistant{margin-right:auto;}
+  .msg-avatar{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Racing Sans One',cursive;font-size:11px;}
+  .message.user .msg-avatar{background:var(--red);color:var(--white);}
+  .message.assistant .msg-avatar{background:var(--dark4);border:1px solid var(--border);color:var(--green);font-size:15px;}
+  .msg-bubble{padding:12px 16px;font-size:14px;line-height:1.75;max-width:calc(100% - 46px);}
+  .message.user .msg-bubble{background:rgba(225,6,0,0.1);border:1px solid rgba(225,6,0,0.22);color:var(--white);}
+  .message.assistant .msg-bubble{background:var(--dark3);border:1px solid var(--border);color:var(--text);}
+  .msg-bubble strong{color:var(--white);font-weight:700;}
+  .msg-bubble em{color:var(--text2);}
+
+  .typing{display:flex;align-items:center;gap:5px;padding:13px 16px;background:var(--dark3);border:1px solid var(--border);}
+  .typing span{width:6px;height:6px;background:var(--red);border-radius:50%;animation:bounce 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:0.2s;}
+  .typing span:nth-child(3){animation-delay:0.4s;}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
+
+  .lap-counter{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:0 26px;flex-shrink:0;margin-bottom:4px;}
+  .lap-counter .bar{flex:1;height:1px;background:var(--border);}
+
+  /* Input */
+  .input-area{border-top:1px solid var(--border);background:var(--dark2);padding:16px 26px 20px;flex-shrink:0;}
+  .input-row{display:flex;gap:9px;align-items:flex-end;max-width:900px;margin:0 auto;}
+  .input-wrap{flex:1;}
+  textarea{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:500;padding:12px 15px;resize:none;outline:none;min-height:48px;max-height:130px;line-height:1.5;transition:border-color 0.2s;}
+  textarea:focus{border-color:var(--red);}
+  textarea::placeholder{color:var(--muted);}
+  .send-btn{background:var(--red);color:var(--white);border:none;cursor:pointer;width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background 0.2s,transform 0.1s;}
+  .send-btn:hover{background:var(--red2);}
+  .send-btn:active{transform:scale(0.96);}
+  .send-btn:disabled{background:var(--muted);cursor:not-allowed;transform:none;}
+  .input-hint{text-align:center;font-size:10.5px;color:var(--muted);margin-top:8px;letter-spacing:0.5px;}
+  .error-msg{background:rgba(225,6,0,0.08);border:1px solid rgba(225,6,0,0.28);color:#FF8080;padding:11px 15px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;margin:0 26px;}
+</style>
+</head>
+<body>
+<div class="top-stripe"></div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-badge">Pit Lane Intel · Free Setup</div>
+    <h2>Connect Your Free API</h2>
+    <div class="free-badge">✓ 100% FREE · No credit card</div>
+
+    <div class="modal-steps">
+      <div class="modal-steps-title">Get your free Groq key in 60 seconds</div>
+      <div class="step"><div class="step-num">1</div><span>Go to <a href="https://console.groq.com" target="_blank">console.groq.com</a> → Sign up free</span></div>
+      <div class="step"><div class="step-num">2</div><span>Click <strong>API Keys</strong> → <strong>Create API Key</strong></span></div>
+      <div class="step"><div class="step-num">3</div><span>Copy the key (starts with <code style="color:var(--green);background:var(--dark);padding:1px 5px;font-size:11px">gsk_</code>) and paste below</span></div>
+    </div>
+
+    <label for="apiKeyInput">Groq API Key (free)</label>
+    <input type="password" id="apiKeyInput" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+
+    <label for="modelSelect">Model</label>
+    <select id="modelSelect">
+      <option value="llama-3.3-70b-versatile">Llama 3.3 70B — Best quality (recommended)</option>
+      <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest</option>
+      <option value="mixtral-8x7b-32768">Mixtral 8x7B — Balanced</option>
+      <option value="gemma2-9b-it">Gemma 2 9B — Google open model</option>
+    </select>
+
+    <button class="modal-btn" id="startBtn">ENTER PIT LANE →</button>
+    <p class="modal-note">Key stored only in this browser session · Never sent anywhere except Groq</p>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app">
+  <header>
+    <div class="header-left">
+      <div class="f1-badge">F1</div>
+      <div>
+        <div class="header-title">Pit Lane Intel</div>
+        <div class="header-sub">RAG · Open Source LLM</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="model-chip" id="modelChip">—</div>
+      <div class="status-dot"></div>
+      <button class="change-key-btn" id="changeKeyBtn">SETTINGS</button>
+    </div>
+  </header>
+
+  <div class="messages" id="messages">
+    <div class="welcome">
+      <div class="welcome-label">Knowledge Base Loaded · Groq Powered</div>
+      <h3>Welcome to Pit Lane Intel</h3>
+      <p>Ask anything about Formula 1 — history, drivers, teams, circuits, strategy, technical rules. Powered by open-source Llama / Mixtral via Groq, with a built-in F1 RAG knowledge base.</p>
+      <div class="suggestions">
+        <div class="suggestion" onclick="suggest(this)">Who has the most F1 wins ever?</div>
+        <div class="suggestion" onclick="suggest(this)">Explain how DRS works</div>
+        <div class="suggestion" onclick="suggest(this)">Who won the 2024 championship?</div>
+        <div class="suggestion" onclick="suggest(this)">Tell me about Monaco GP</div>
+        <div class="suggestion" onclick="suggest(this)">Ferrari's history in F1</div>
+        <div class="suggestion" onclick="suggest(this)">How does tyre strategy work?</div>
+        <div class="suggestion" onclick="suggest(this)">Senna vs Schumacher vs Hamilton</div>
+        <div class="suggestion" onclick="suggest(this)">What is ground effect?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lap-counter" id="lapCounter" style="display:none">
+    <div class="bar"></div>
+    <span id="contextInfo">—</span>
+    <div class="bar"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <div class="input-wrap">
+        <textarea id="userInput" placeholder="Ask about F1…" rows="1"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn">&#9658;</button>
+    </div>
+    <div class="input-hint">Enter to send · Shift+Enter for new line · Free via Groq</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════ F1 KNOWLEDGE BASE ═══════════════════
+const F1_KB = [
+  { id:"champ_early", tags:["champion","1950","fangio","early","history","ascari"],
+    text:`F1 World Champions 1950–1969: 1950 Giuseppe Farina (Alfa Romeo) — first ever champion. 1951 Juan Manuel Fangio (Alfa Romeo). 1952-53 Alberto Ascari (Ferrari). 1954-57 Juan Manuel Fangio (5 titles, record stood 46 years). 1958 Mike Hawthorn (Ferrari) — first British champion. 1959-60 Jack Brabham (Cooper). 1961 Phil Hill (Ferrari) — first American champion. 1962 Graham Hill (BRM). 1963,1965 Jim Clark (Lotus). 1964 John Surtees (Ferrari) — only man to win titles on 2 and 4 wheels. 1966 Jack Brabham (Brabham) — won in car with his own name. 1968 Graham Hill (Lotus). 1969 Jackie Stewart (Matra).` },
+
+  { id:"champ_7080", tags:["champion","1970","1980","lauda","senna","prost","hunt","history"],
+    text:`F1 World Champions 1970–1989: 1970 Jochen Rindt (Lotus) — only posthumous champion. 1971,1973 Jackie Stewart (Tyrrell). 1972,1974 Emerson Fittipaldi. 1975,1977 Niki Lauda (Ferrari) — survived near-fatal Nürburgring fire 1976. 1976 James Hunt (McLaren) — beat Lauda by 1 point. 1978 Mario Andretti (Lotus). 1979 Jody Scheckter (Ferrari). 1980 Alan Jones (Williams). 1981,1983,1987 Nelson Piquet. 1982 Keke Rosberg (Williams). 1984,1985,1986 Alain Prost (McLaren). 1988 Ayrton Senna (McLaren) — McLaren won 15/16 races. 1989 Prost — crashed by Senna at Suzuka.` },
+
+  { id:"champ_9000", tags:["champion","1990","2000","senna","schumacher","hill","ferrari","history"],
+    text:`F1 World Champions 1990–2009: 1990-91 Ayrton Senna (McLaren) — 3rd/final title. 1992 Nigel Mansell (Williams) — 9 wins. 1993 Alain Prost — retired with 4 titles. 1994 Michael Schumacher (Benetton) — year Senna died at Imola. 1995 Schumacher (Benetton). 1996 Damon Hill (Williams) — son of champion Graham. 1997 Jacques Villeneuve — Schumacher disqualified for ramming him. 1998-99 Mika Häkkinen (McLaren). 2000-2004 Michael Schumacher (Ferrari) — 5 consecutive, 2004 won 13/18 races, most dominant season ever. 2005-06 Fernando Alonso (Renault) — youngest champion at 24. 2007 Kimi Räikkönen — by 1 point. 2008 Lewis Hamilton — won on last corner last lap Brazil. 2009 Jenson Button (Brawn GP).` },
+
+  { id:"champ_2010s", tags:["champion","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","vettel","hamilton","rosberg"],
+    text:`F1 World Champions 2010–2019: 2010 Sebastian Vettel (Red Bull) — youngest champion at 23. 2011 Vettel — 15 poles, 11 wins. 2012 Vettel from 3rd after finale. 2013 Vettel — 9 consecutive wins, dominant. 2014 Lewis Hamilton (Mercedes) — new hybrid era, dominant. 2015 Hamilton — 3rd title. 2016 Nico Rosberg — beat Hamilton, retired 5 days later. 2017 Hamilton — 4th, matching Prost/Senna. 2018 Hamilton — 5th, matching Fangio. 2019 Hamilton — 6th, breaking Fangio record.` },
+
+  { id:"champ_2020s", tags:["champion","2020","2021","2022","2023","2024","hamilton","verstappen","red bull","mclaren","norris"],
+    text:`F1 World Champions 2020s: 2020 Lewis Hamilton (Mercedes) — 7th title, breaking Schumacher's record of 7. 2021 Max Verstappen (Red Bull) — last-lap Abu Dhabi overtake on Hamilton, extremely controversial safety car restart. 2022 Verstappen — 2nd title, dominant 2nd half. 2023 Verstappen — 3rd title, most dominant season in history: 19 wins from 22 races. 2024 Verstappen (Red Bull) — 4th world championship, 3rd driver to win 4+ titles after Fangio and Schumacher. McLaren won 2024 Constructors' Championship. Lando Norris runner-up in drivers' standings. McLaren, Ferrari and Mercedes all won races in 2024. Norris first win was Miami 2024.` },
+
+  { id:"records", tags:["record","most wins","pole","fastest","all time","hamilton","schumacher","verstappen","statistics"],
+    text:`F1 All-Time Records (end 2024): Most Race Wins: Lewis Hamilton 103+ (broke Schumacher's 91 in 2020). Verstappen 60+. Most Championships: Hamilton & Schumacher 7 each. Verstappen 4. Fangio 5. Most Pole Positions: Hamilton 100+. Senna 65. Schumacher 68. Most Podiums: Hamilton 190+. Most Points: Hamilton 4,500+. Most Constructors' Titles: Ferrari 16. Most Wins in Single Season: Verstappen 2023 — 19. Youngest Champion: Vettel 23y 134d (2010). Fastest Pit Stop: Red Bull 1.82 seconds (Brazil 2019). Closest Title: Lauda beat Prost by 0.5 points (1984). Smallest margin: Räikkönen beat Hamilton and Alonso both 109pts by 1 point (2007).` },
+
+  { id:"drivers_2024", tags:["driver","grid","2024","current","verstappen","hamilton","leclerc","norris","alonso","russell","sainz","perez","piastri"],
+    text:`2024 F1 Drivers: Max Verstappen (Red Bull #1) — 4x Champion, Dutch. Sergio Perez (Red Bull #11) — Mexican, strong 2022-23, faded 2024. Lewis Hamilton (Mercedes #44) — 7x Champion, British, announced Ferrari move for 2025. George Russell (Mercedes #63) — British, won Brazil 2022. Charles Leclerc (Ferrari #16) — Monégasque, 8x Monaco pole sitter. Carlos Sainz (Ferrari #55) — Spanish, won Australian GP 2024, moved to Williams 2025. Lando Norris (McLaren #4) — British, 2nd in 2024 championship, first win Miami 2024. Oscar Piastri (McLaren #81) — Australian, multiple 2024 wins, huge talent. Fernando Alonso (Aston Martin #14) — Spanish, 2x Champion born 1981, remarkable longevity. Lance Stroll (Aston Martin #18) — Canadian, son of team owner Lawrence Stroll.` },
+
+  { id:"teams_2024", tags:["team","constructor","2024","red bull","ferrari","mercedes","mclaren","aston martin","alpine","williams","haas","sauber"],
+    text:`2024 F1 Teams: Red Bull Racing (Milton Keynes) — founded 2005, Honda/RBPT engine, dominant 2010-13 (Vettel) and 2021-24 (Verstappen). Ferrari (Maranello) — only team in every F1 season since 1950, Ferrari engine, 16 constructors' titles. Mercedes-AMG (Brackley) — 8 consecutive constructors' 2014-2021, Mercedes engine. McLaren (Woking) — founded 1966, 8 constructors' titles, huge 2024 resurgence, won 2024 Constructors', Mercedes engine. Aston Martin (Silverstone) — ex-Force India/Racing Point, Mercedes engine. Alpine (Enstone) — ex-Renault, Renault engine. Williams (Grove) — founded 1977, 7 constructors' titles, Mercedes engine. RB/AlphaTauri (Faenza) — Red Bull junior team. Haas (USA) — only American team, Ferrari engine. Kick Sauber (Hinwil) — becoming Audi 2026, Ferrari engine.` },
+
+  { id:"technical_drs_ers", tags:["drs","ers","kers","technical","hybrid","power unit","overtaking","how","wing","flap","drag"],
+    text:`F1 Technical — DRS and ERS: DRS (Drag Reduction System): Movable rear wing flap. Driver must be within 1 second of car ahead at detection point to activate. Opens flap on straights, reducing drag, gaining ~10-12 km/h top speed (~0.5s per use). Disabled in wet conditions. ERS (Energy Recovery System): MGU-K (Motor Generator Unit-Kinetic) — recovers braking energy, deploys up to 120kW (160hp) for 33.3 seconds per lap. MGU-H (Motor Generator Unit-Heat) — recovers turbo exhaust energy (removed from 2026). Power unit: 1.6L turbocharged V6 hybrid, ~1,000hp total. Budget cap from 2021: $135M/year. 2026 regs: Simplified hybrid, MGU-H removed, 50/50 ICE/electric power split, new suppliers Audi and Ford/RBPT.` },
+
+  { id:"tyres", tags:["tyre","tire","strategy","pirelli","compound","soft","medium","hard","pit stop","undercut","overcut"],
+    text:`F1 Tyre Strategy (Pirelli): Sole supplier since 2011. Three dry compounds per weekend from C1 (hardest) to C6 (softest). Soft (red label) — fastest, degrades quickest. Medium (yellow) — balanced. Hard (white) — slowest, most durable. Wet tyres: Intermediate (green) for damp, Wet (blue) for heavy rain. Mandatory rule: must use 2 different dry compounds = at least 1 pit stop. Undercut: pit early, lap faster on fresh tyres, come out ahead. Overcut: stay out, build gap while rival pits. Safety car: effectively a free pit stop — teams rush cars in for fresh tyres. Pit stop time: ~2-3 seconds in pit lane, ultra-fast teams do it in under 2.5s.` },
+
+  { id:"format_qualifying", tags:["qualifying","race","format","weekend","fp1","fp2","fp3","q1","q2","q3","sprint","points"],
+    text:`F1 Race Weekend Format: Standard: FP1 (Fri 60min), FP2 (Fri 60min), FP3 (Sat 60min), Qualifying (Sat) — Q1 18min bottom 5 out, Q2 15min bottom 5 out (tyre rule), Q3 12min top 10 fight for pole. Race Sunday 305km+. Points: 25-18-15-12-10-8-6-4-2-1 plus 1 for fastest lap if in top 10. Sprint Weekend (6/season): FP1, Sprint Shootout (SQ1/SQ2/SQ3), Sprint Race (~100km, points 8-7-6-5-4-3-2-1 top 8), Qualifying, Race. Pole position = lap 1 starting advantage. Q2 tyres rule: compound used for best Q2 lap must be race start tyre (top 10 cars).` },
+
+  { id:"circuits", tags:["circuit","track","monaco","silverstone","monza","spa","suzuka","interlagos","baku","australia","melbourne"],
+    text:`Famous F1 Circuits: Monaco (Monte Carlo) — slowest, street circuit, no overtaking, all about qualifying, Senna won 6 times. Spa-Francorchamps (Belgium) — most beloved, Eau Rouge/Raidillon, 7km, unpredictable weather. Monza (Italy) — fastest, temple of speed, low-downforce, Italian Tifosi (Ferrari fans). Suzuka (Japan) — figure-8, 130R and Spoon corners, many championship deciders. Silverstone (UK) — home of British GP, Becketts complex. Circuit of the Americas (Texas, USA) — hairpin T1, Suzuka-style esses. Interlagos (Brazil) — anti-clockwise, dramatic weather, Hamilton won 2008 title here. Baku (Azerbaijan) — 2.2km straight, mega DRS effect, crash-prone castle section. Yas Marina (Abu Dhabi) — season finale, twilight/night race, 2021 controversy. Bahrain — frequent season opener, dusty, night race option.` },
+
+  { id:"ferrari", tags:["ferrari","history","scuderia","tifosi","italian","red","title","rosso"],
+    text:`Ferrari in F1: Only team in every season since 1950. Founded by Enzo Ferrari. Rosso Corsa (racing red) — Italy's assigned racing color from pre-WWII era. 16 Constructors' Championships. Drivers' champions in red: Ascari, Fangio, P.Hill, Surtees, Lauda, Scheckter, Schumacher (5), Räikkönen. Schumacher era 2000-2004: most dominant team period in history. Tifosi: passionate Italian fans, Monza is their home. Recent: strong 2022 car (Leclerc nearly won), strategy failures 2023, improved 2024 engine. Lewis Hamilton signed for 2025 — biggest signing since Schumacher, seeking record 8th title. Carlos Sainz left for Williams 2025.` },
+
+  { id:"mercedes", tags:["mercedes","dominant","hybrid","2014","eight","silver arrows","hamilton","rosberg","russell","brackley"],
+    text:`Mercedes dominance: Returned as works team 2010. Silver arrows name from 1934 Nürburgring — removed white paint to meet weight limit, revealed silver aluminum. 8 consecutive Constructors' titles 2014-2021 with new hybrid regulations (their engine was dramatically superior). Hamilton won 6 of those drivers' titles. 2016 exception: Rosberg beat Hamilton despite fewer wins. Brawn GP 2009 predecessor — used double diffuser to win championship with Button. Key people: Toto Wolff (Principal), James Allison (Technical Director). Post-dominance: Red Bull ended run 2022. Hamilton to Ferrari 2025.` },
+
+  { id:"red_bull", tags:["red bull","verstappen","vettel","newey","dominant","2021","2022","2023","2024","rbpt","honda"],
+    text:`Red Bull Racing: Founded 2005, took over Jaguar. Based Milton Keynes. Adrian Newey — genius aerodynamicist (left for Aston Martin 2025). Vettel era 2010-2013: 4 consecutive championships. Verstappen era 2021-2024: 4 championships. 2021: Controversial Abu Dhabi final lap, safety car restart, Verstappen on fresh softs beat Hamilton on old mediums. 2022: New ground-effect regs, RB18 excellent, 15 wins. 2023: Most dominant season ever, 19/22 wins. 2024: Verstappen's 4th title but McLaren and Ferrari faster in second half, McLaren won Constructors'. Engine: Honda (RBPT — Red Bull Powertrains from 2022 on Honda base). Notable drivers: Coulthard, Webber, Vettel, Ricciardo, Verstappen, Perez.` },
+
+  { id:"senna_schumi_hamilton", tags:["senna","schumacher","hamilton","greatest","goat","best ever","legend","compare"],
+    text:`GOAT Debate — Senna vs Schumacher vs Hamilton: Ayrton Senna (Brazil, 1984-94): 3 championships, 41 wins, 65 poles. Transcendent natural talent. Supreme in wet weather and qualifying. Died Imola 1994 aged 34. Legendary rivalry with Prost. Michael Schumacher (Germany, 1991-2012): 7 championships (5 consecutive Ferrari 2000-04), 91 wins, 68 poles, 77 fastest laps. Transformed team culture and preparation. Suffered serious skiing accident 2013. Lewis Hamilton (Britain, 2007-present): 7 championships, 103+ wins, 100+ poles — all-time records. Most decorated driver statistically. Remarkable longevity, diversity advocate. Moving to Ferrari 2025 for potential 8th title. The debate: Senna — pure talent. Schumacher — work ethic and team leadership. Hamilton — statistics and consistency across eras.` },
+
+  { id:"safety", tags:["safety","halo","crash","accident","grosjean","lauda","bianchi","senna","fatal","fire","marshals"],
+    text:`F1 Safety Evolution: Halo — titanium cockpit protection introduced 2018. Saved Grosjean's life in Bahrain 2020 fireball crash (car split in two, fire, he walked away in 28 seconds). SAFER barriers absorb impact. Lauda 1976 Nürburgring: survived near-fatal fire, returned 6 weeks later. Fatal accidents modern era: Senna and Ratzenberger (Imola 1994 — led to massive safety overhaul). Jules Bianchi — last F1 fatality, injured Japan 2014, died 2015. Virtual Safety Car introduced post-Bianchi. HANS device (Head And Neck Support) — mandatory since 2003. Medical helicopter on standby all races. 6,000+ volunteer marshals at typical event. Red Flag: race stopped, cars to pit lane.` },
+
+  { id:"overtaking_racing", tags:["overtaking","pass","dirty air","ground effect","2022","racing","wheel to wheel","battle"],
+    text:`Overtaking in F1: Dirty air — trailing car gets turbulent airflow from car ahead, loses downforce in corners, hard to follow closely. Ground effect (2022+ regs): Venturi tunnels under car generate downforce from ground, not just wings. Less sensitive to dirty air = more wheel-to-wheel racing. DRS: Opens rear wing flap within 1s of car ahead at detection point, ~12km/h gain on straights. Slipstream: Following directly on long straight reduces drag dramatically. Strategy overtakes: Undercut (pit early, fresh fast tyres, exit ahead) or overcut (stay out, build gap while rival pits). Budget cap from 2021: $135M/year ceiling (reducing), helps level playing field.` },
+
+  { id:"rivalries", tags:["rivalry","battle","senna","prost","hamilton","rosberg","verstappen","norris","piastri","leclerc"],
+    text:`Great F1 Rivalries: Senna vs Prost (1988-93): Defining rivalry. McLaren teammates 1988-89, collisions at Suzuka both years. Prost called Senna "most dangerous." 7 combined titles. Schumacher vs Hill (1994), vs Villeneuve (1997) — controversially crashed into both in title deciders. Hamilton vs Rosberg (2014-16): Intense teammate war. Rosberg won title, retired 5 days later. Hamilton vs Verstappen (2021): Year-long battle. Crashes Silverstone, Monza, Jeddah. Abu Dhabi finale most controversial in modern history. Norris vs Piastri (2024): Both McLaren, both extremely fast, Norris 2nd overall. Leclerc vs Sainz: Ferrari teammates 2021-24, generally Leclerc faster.` }
+];
+
+// ═══════════════════ RAG ENGINE ═══════════════════
+function tok(text) {
+  return text.toLowerCase().replace(/[^\w\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
+}
+function score(chunk, qToks) {
+  const cToks = tok(chunk.text + ' ' + chunk.tags.join(' '));
+  let s = 0;
+  for (const qt of qToks) {
+    for (const ct of cToks) {
+      if (ct === qt) s += 2;
+      else if (ct.includes(qt) || qt.includes(ct)) s += 1;
+    }
+    if (chunk.tags.some(t => t.includes(qt) || qt.includes(t))) s += 3;
+  }
+  return s;
+}
+function retrieve(query, k = 4) {
+  const qToks = tok(query);
+  const scored = F1_KB.map(c => ({ c, s: score(c, qToks) })).sort((a,b) => b.s - a.s);
+  const top = scored.slice(0, k).filter(x => x.s > 0);
+  return { texts: top.map(x => x.c.text), count: top.length };
+}
+
+// ═══════════════════ APP STATE ═══════════════════
+let apiKey   = sessionStorage.getItem('f1_groq_key') || '';
+let model    = sessionStorage.getItem('f1_groq_model') || 'llama-3.3-70b-versatile';
+let loading  = false;
+let history  = [];
+
+const $modal     = document.getElementById('modalOverlay');
+const $apiInput  = document.getElementById('apiKeyInput');
+const $modelSel  = document.getElementById('modelSelect');
+const $startBtn  = document.getElementById('startBtn');
+const $changeBtn = document.getElementById('changeKeyBtn');
+const $msgs      = document.getElementById('messages');
+const $input     = document.getElementById('userInput');
+const $send      = document.getElementById('sendBtn');
+const $lapBar    = document.getElementById('lapCounter');
+const $ctxInfo   = document.getElementById('contextInfo');
+const $chip      = document.getElementById('modelChip');
+
+function modelLabel(m) {
+  if (m.includes('70b')) return 'Llama 3.3 70B';
+  if (m.includes('8b'))  return 'Llama 3.1 8B';
+  if (m.includes('mixtral')) return 'Mixtral 8x7B';
+  if (m.includes('gemma')) return 'Gemma 2 9B';
+  return m.split('-').slice(0,2).join('-');
+}
+
+function init() {
+  $modelSel.value = model;
+  $chip.textContent = modelLabel(model);
+  if (!apiKey) { $modal.classList.remove('hidden'); }
+  else { $modal.classList.add('hidden'); }
+}
+init();
+
+$startBtn.addEventListener('click', () => {
+  const k = $apiInput.value.trim();
+  if (!k.startsWith('gsk_') && k.length < 10) {
+    $apiInput.style.borderColor = 'var(--red)';
+    $apiInput.placeholder = 'Key must start with gsk_...';
+    return;
+  }
+  apiKey = k;
+  model  = $modelSel.value;
+  sessionStorage.setItem('f1_groq_key', k);
+  sessionStorage.setItem('f1_groq_model', model);
+  $chip.textContent = modelLabel(model);
+  $modal.classList.add('hidden');
+  $input.focus();
+});
+$apiInput.addEventListener('keydown', e => { if (e.key==='Enter') $startBtn.click(); });
+$changeBtn.addEventListener('click', () => { $modal.classList.remove('hidden'); $apiInput.value=''; $apiInput.focus(); });
+
+$input.addEventListener('input', () => {
+  $input.style.height = 'auto';
+  $input.style.height = Math.min($input.scrollHeight, 130) + 'px';
+});
+$input.addEventListener('keydown', e => {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if (!loading) send(); }
+});
+$send.addEventListener('click', () => { if (!loading) send(); });
+
+function suggest(el) { $input.value = el.textContent; if (!loading) send(); }
+
+function scrollDown() { $msgs.scrollTop = $msgs.scrollHeight; }
+
+function addMsg(role, text) {
+  const wrap = document.createElement('div');
+  wrap.className = `message ${role}`;
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = role === 'user' ? 'YOU' : '⚡';
+  const bub = document.createElement('div');
+  bub.className = 'msg-bubble';
+  bub.innerHTML = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:#1a1a1a;padding:1px 5px;font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:#00D2BE">$1</code>')
+    .replace(/\n/g, '<br>');
+  wrap.appendChild(av);
+  wrap.appendChild(bub);
+  $msgs.appendChild(wrap);
+  scrollDown();
+}
+
+function addTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'message assistant'; wrap.id = 'typing';
+  const av = document.createElement('div'); av.className = 'msg-avatar'; av.textContent = '⚡';
+  const t = document.createElement('div'); t.className = 'typing';
+  t.innerHTML = '<span></span><span></span><span></span>';
+  wrap.appendChild(av); wrap.appendChild(t);
+  $msgs.appendChild(wrap); scrollDown();
+}
+function rmTyping() { const el = document.getElementById('typing'); if (el) el.remove(); }
+
+async function send() {
+  if (!apiKey) { $modal.classList.remove('hidden'); return; }
+  const query = $input.value.trim();
+  if (!query) return;
+  $input.value = ''; $input.style.height = 'auto';
+  loading = true; $send.disabled = true;
+
+  addMsg('user', query);
+
+  // RAG
+  const { texts, count } = retrieve(query, 4);
+  $lapBar.style.display = 'flex';
+  $ctxInfo.textContent = `${count} knowledge chunk${count!==1?'s':''} retrieved`;
+
+  const context = texts.length
+    ? '\n\nF1 Knowledge Base:\n---\n' + texts.join('\n---\n') + '\n---\n'
+    : '';
+
+  addTyping();
+
+  const messages = [
+    ...history,
+    { role:'user', content: context + '\n\nQuestion: ' + query }
+  ];
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 900,
+        temperature: 0.7,
+        messages: [
+          { role:'system', content:`You are "Pit Lane Intel" — an expert Formula 1 AI. Use the provided F1 knowledge base context as primary source. Be accurate, passionate about F1, use terminology naturally. Bold key terms with **asterisks**. Keep answers engaging and complete but not excessively long.` },
+          ...messages
+        ]
+      })
+    });
+
+    const data = await res.json();
+    rmTyping();
+
+    if (data.error) throw new Error(data.error.message);
+
+    const reply = data.choices[0].message.content;
+    history.push({ role:'user', content: query });
+    history.push({ role:'assistant', content: reply });
+    if (history.length > 12) history = history.slice(-12);
+
+    addMsg('assistant', reply);
+  } catch(err) {
+    rmTyping();
+    const div = document.createElement('div');
+    div.className = 'error-msg';
+    div.textContent = '⚠ ' + (err.message.includes('401') ? 'Invalid API key — click SETTINGS to update.' : err.message);
+    $msgs.appendChild(div); scrollDown();
+  }
+
+  loading = false; $send.disabled = false; $input.focus();
+}
+</script>
+</body>
+</html>
