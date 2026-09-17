@@ -5,3 +5,13 @@ __pycache__/
 .DS_Store
 .env
 .env.local
+
+# Editor
+.vscode/
+
+# Node (in case API.ts/rout.ts grow into a backend)
+node_modules/
+npm-debug.log*
+
+# Logs
+*.log
